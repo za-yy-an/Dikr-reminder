@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Reminders — Adhkar</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .schedule-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  .schedule-list .list-label {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 12px; font-weight: 500;
+  }
+  .schedule-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+  }
+  .schedule-row:last-child { border-bottom: none; }
+  .schedule-row .s-time { color: var(--gold); font-weight: 500; font-size: 13px; }
+
+  .notif-what {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 22px; margin-bottom: 20px;
+  }
+  .notif-what p { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 16px; }
+  .notif-preview {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .notif-preview-icon { font-size: 26px; }
+  .notif-preview-title { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+  .notif-preview-body { font-size: 13px; color: var(--text-muted); }
+
+  .btn-full {
+    width: 100%; background: var(--gold); border: none; color: var(--midnight);
+    padding: 15px; border-radius: 8px; font-size: 15px; font-weight: 500;
+    cursor: pointer; transition: background 0.2s, transform 0.15s;
+    font-family: 'DM Sans', sans-serif; letter-spacing: 0.02em;
+  }
+  .btn-full:hover { background: var(--gold-light); transform: translateY(-1px); }
+  .btn-full:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-back-full {
+    width: 100%; background: none; border: 1px solid var(--border);
+    color: var(--text-muted); padding: 12px; border-radius: 8px;
+    font-size: 14px; cursor: pointer; margin-top: 10px;
+    font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .btn-back-full:hover { border-color: var(--border-hover); color: var(--text); }
+
+  .error-msg {
+    background: rgba(232,122,122,0.1); border: 1px solid rgba(232,122,122,0.3);
+    border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #e87a7a;
+    margin-top: 14px; display: none; line-height: 1.6;
+  }
+
+  .already-state { text-align: center; padding: 10px 0; }
+  .already-state .reg-icon { font-size: 48px; margin-bottom: 16px; }
+  .already-state h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600; margin-bottom: 10px; }
+  .already-state p { font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 4px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(8,8,16,0.3); border-top-color: var(--midnight);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="grain"></div>
+<div class="geo-pattern"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <span class="arabic-logo">اذكار</span>
+    <span class="logo-text">Adhkar</span>
+  </a>
+  <div class="nav-links">
+    <a href="library.html">Dhikr Library</a>
+  </div>
+</nav>
+
+<div class="register-page">
+  <div class="register-wrap">
+
+    <div class="register-header">
+      <span class="arabic-logo">اذكار</span>
+      <h1>Enable Reminders</h1>
+      <p>One step. A lifetime of remembrance.</p>
+    </div>
+
+    <div class="register-card">
+
+      <!-- STEP DOTS (hidden for already/success states) -->
+      <div class="form-steps" id="step-dots">
+        <div class="form-step-item">
+          <div class="step-dot active" id="dot-1">1</div>
+          <span class="step-label active" id="label-1">Your Name</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="form-step-item">
+          <div class="step-dot" id="dot-2">2</div>
+          <span class="step-label" id="label-2">Allow Notifications</span>
+        </div>
+      </div>
+
+      <!-- ══ PANEL: Already registered ══ -->
+      <div class="form-panel" id="panel-already">
+        <div class="already-state">
+          <div class="reg-icon">✅</div>
+          <h2>You're already set up!</h2>
+          <p>This device is already receiving Adhkar reminders.</p>
+          <p style="font-size:13px; color:var(--text-dim); margin-top:4px;">You'll get a notification at each of these times every day:</p>
+          <div class="schedule-list" style="text-align:left; margin-top:18px;">
+            <div class="schedule-row"><span>🌅 Morning Adhkar</span><span class="s-time">6:00 AM</span></div>
+            <div class="schedule-row"><span>☀️ Upon Waking</span><span class="s-time">7:00 AM</span></div>
+            <div class="schedule-row"><span>🌆 Evening Adhkar</span><span class="s-time">5:00 PM</span></div>
+            <div class="schedule-row"><span>🌙 Before Sleep</span><span class="s-time">10:00 PM</span></div>
+          </div>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px;">
+            <a href="library.html" class="btn-primary">Browse Adhkar →</a>
+            <a href="index.html" class="btn-ghost">Back to Home</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PANEL 1: Name ══ -->
+      <div class="form-panel active" id="panel-1">
+        <div class="form-group">
+          <label class="form-label">Your Name</label>
+          <input type="text" class="form-input" id="input-name"
+            placeholder="e.g. Ahmad" autocomplete="off" maxlength="40"
+            oninput="onNameInput()">
+          <p style="font-size:12px; color:var(--text-dim); margin-top:6px;">Only used to personalize your notifications</p>
+        </div>
+
+        <div class="schedule-list">
+          <div class="list-label">You'll receive reminders at</div>
+          <div class="schedule-row"><span>🌅 Morning Adhkar</span><span class="s-time">6:00 AM</span></div>
+          <div class="schedule-row"><span>☀️ Upon Waking</span><span class="s-time">7:00 AM</span></div>
+          <div class="schedule-row"><span>🌆 Evening Adhkar</span><span class="s-time">5:00 PM</span></div>
+          <div class="schedule-row"><span>🌙 Before Sleep</span><span class="s-time">10:00 PM</span></div>
+        </div>
+
+        <button class="btn-full" id="btn-step1" onclick="goToStep2()" disabled>
+          Continue →
+        </button>
+      </div>
+
+      <!-- ══ PANEL 2: Allow Notifications ══ -->
+      <div class="form-panel" id="panel-2">
+        <div class="notif-what">
+          <p>
+            Tap <strong style="color:var(--text)">Enable Notifications</strong> below.
+            Your browser will ask for permission once — just tap
+            <strong style="color:var(--text)">"Allow"</strong> and you're done.
+          </p>
+          <div class="notif-preview">
+            <div class="notif-preview-icon">🌅</div>
+            <div>
+              <div class="notif-preview-title" id="preview-title">🌅 Morning Adhkar</div>
+              <div class="notif-preview-body">Tap to begin — your adhkar are ready</div>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:12px; color:var(--text-dim); text-align:center; margin-bottom:16px;">
+          No account. No ads. No spam. Just reminders.
+        </p>
+
+        <button class="btn-full" id="btn-allow" onclick="requestPermission()">
+          🔔 Enable Notifications
+        </button>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <button class="btn-back-full" onclick="goBackTo1()">← Back</button>
+      </div>
+
+      <!-- ══ PANEL: Success ══ -->
+      <div class="form-panel" id="panel-success">
+        <div class="success-state">
+          <div class="success-icon">✓</div>
+          <h2>All set, <span id="success-name">friend</span>!</h2>
+          <p>Reminders are active on this device.</p>
+          <p style="color:var(--text-dim); font-size:14px; margin-top:6px;">
+            Every day, at the right times, we'll tap your shoulder gently.
+          </p>
+          <div class="success-arabic">وَاذْكُرُوا اللَّهَ كَثِيرًا</div>
+          <p class="success-trans">"And remember Allah often." — Quran 62:10</p>
+          <div style="margin-top:32px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <a href="library.html" class="btn-primary">Browse Adhkar →</a>
+            <a href="index.html" class="btn-ghost">Back to Home</a>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /register-card -->
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'adhkar_device_registered';
+  let userName = '';
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // ── On load: check if this device already registered ──
+  window.addEventListener('load', () => {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) {
+      showPanel('already');
+      document.getElementById('step-dots').style.display = 'none';
+    }
+  });
+
+  // ── Enable Continue only when name is typed ──
+  function onNameInput() {
+    const val = document.getElementById('input-name').value.trim();
+    document.getElementById('btn-step1').disabled = val.length === 0;
+  }
+
+  // Enter key submits step 1
+  document.getElementById('input-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') goToStep2();
+  });
+
+  // ── Step 1 → Step 2 ──
+  function goToStep2() {
+    const name = document.getElementById('input-name').value.trim();
+    if (!name) return;
+    userName = name;
+    document.getElementById('preview-title').textContent = `🌅 Morning Adhkar, ${name}`;
+    setDot(1, 'done');
+    setDot(2, 'active');
+    showPanel('2');
+  }
+
+  function goBackTo1() {
+    document.getElementById('error-msg').style.display = 'none';
+    setDot(2, 'idle');
+    setDot(1, 'active');
+    showPanel('1');
+  }
+
+  // ── Request notification permission & complete registration ──
+  async function requestPermission() {
+    const btn = document.getElementById('btn-allow');
+    const errEl = document.getElementById('error-msg');
+    errEl.style.display = 'none';
+
+    if (!('Notification' in window)) {
+      showError('Your browser does not support push notifications. Please try Chrome on Android or a desktop browser.');
+      return;
+    }
+
+    // Show spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Waiting for permission…';
+
+    try {
+      const permission = await Notification.requestPermission();
+
+      if (permission === 'granted') {
+        btn.innerHTML = '<span class="spinner"></span>Saving your reminders…';
+
+        // ─── PRODUCTION: uncomment and fill in your VAPID key ───
+        // const swReg = await navigator.serviceWorker.register('/sw.js');
+        // await navigator.serviceWorker.ready;
+        // const subscription = await swReg.pushManager.subscribe({
+        //   userVisibleOnly: true,
+        //   applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY_HERE')
+        // });
+        // await fetch('/api/register', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     name: userName,
+        //     timezone: userTimezone,
+        //     subscription: subscription.toJSON()
+        //     // subscription.endpoint + keys are the push token — save these in your DB
+        //   })
+        // });
+        // ─────────────────────────────────────────────────────────
+
+        // Mark this device as registered — prevents re-registration
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          name: userName,
+          timezone: userTimezone,
+          registeredAt: new Date().toISOString()
+        }));
+
+        document.getElementById('success-name').textContent = userName;
+        setDot(2, 'done');
+        showPanel('success');
+        document.getElementById('step-dots').style.display = 'none';
+
+      } else if (permission === 'denied') {
+        btn.disabled = false;
+        btn.textContent = '🔔 Enable Notifications';
+        showError('Notifications are blocked on this device. Go to your browser settings → Site Settings → Notifications → allow this site, then come back and try again.');
+      } else {
+        // User dismissed the prompt without choosing
+        btn.disabled = false;
+        btn.textContent = '🔔 Enable Notifications';
+      }
+
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '🔔 Enable Notifications';
+      showError('Something went wrong. Please try again.');
+      console.error(err);
+    }
+  }
+
+  // ── Helpers ──
+  function showPanel(id) {
+    document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+  }
+
+  function setDot(num, state) {
+    const dot = document.getElementById('dot-' + num);
+    const label = document.getElementById('label-' + num);
+    dot.classList.remove('active', 'done');
+    if (label) label.classList.remove('active');
+    if (state === 'active') {
+      dot.classList.add('active'); dot.textContent = num;
+      if (label) label.classList.add('active');
+    } else if (state === 'done') {
+      dot.classList.add('done'); dot.textContent = '✓';
+    } else {
+      dot.textContent = num;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // Needed for real VAPID push subscription
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+  }
+</script>
+</body>
+</html>
